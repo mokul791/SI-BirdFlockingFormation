@@ -1,0 +1,88 @@
+turtles-own [
+  flockmates  ;; boids in range of individual boid's perception
+  closest-neighbor  ;; nearest of the individual boid
+  velocity ;; individual boid's velocity
+]
+to setup
+  clear-all
+  ask patches [set pcolor white ]
+  create-turtles numberofboid
+  [ set color blue
+    set size 1
+    setxy random-xcor random-ycor
+    set velocity base-velocity
+    set flockmates no-turtles ]
+    ;;fd velocity ]
+  reset-ticks
+end
+
+to go
+  ask turtles
+  [flock]
+  tick
+end
+
+to flock
+  find-flockmates
+  if any? flockmates
+  [ find-closest-neighbor
+    ifelse distance closest-neighbor < min-separation
+      [separate]
+      [align
+        cohere]]
+  set velocity base-velocity
+  fd velocity
+   ;;rt [heading] of closest-neighbor
+   stop
+end
+
+
+to find-flockmates
+  set flockmates (other turtles in-cone vision-distance vision-angle)
+end
+to find-closest-neighbor
+  set closest-neighbor min-one-of flockmates [distance myself]
+end
+
+to separate
+  turn-away ([ heading ] of closest-neighbor) max-separate-turn
+  set velocity base-velocity * (1 - velocity-factor)
+end
+
+to align
+  turn-towards average-flockmate-heading max-align-turn
+   set velocity base-velocity * (1 + velocity-factor)
+    stop
+end
+
+to-report average-flockmate-heading
+  let x-component sum [dx] of flockmates
+  let y-component sum [dy] of flockmates
+  ifelse x-component = 0 and y-component = 0
+  [ report heading]
+  [ report atan x-component y-component]
+end
+
+to cohere
+  if any? flockmates in-cone vision-distance obstruction-angle [
+    turn-at-most (random-float (max-cohere-turn * 2)) max-cohere-turn
+    set velocity base-velocity * (1 + velocity-factor)
+    stop
+  ]
+end
+
+to turn-towards [ new-heading max-turn]
+  turn-at-most (subtract-headings new-heading heading) max-turn
+end
+
+to turn-away [new-heading max-turn]
+  turn-at-most (subtract-headings heading new-heading ) max-turn
+end
+
+to turn-at-most [turn max-turn]
+    ifelse abs turn > max-turn
+    [ ifelse turn > 0
+        [ rt max-turn ]
+        [ lt max-turn ] ]
+    [ rt turn ]
+end
